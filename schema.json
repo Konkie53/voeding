@@ -1,0 +1,380 @@
+{
+  "version": "2026-11-25",
+  "bron": "Weekschema voeding om te printen (Claude Doc, 11 okt 2026)",
+  "intro": "Gemiddeld 3.500 kcal per dag, ongeveer 330 onder je geschatte verbruik: goed voor 0,3 kg vetverlies per week en rond 81 kg op 19 december. Rond de wedstrijd eet je op onderhoud; het tekort zit op de andere dagen.",
+  "regels": [
+    "Sla geen eetmoment over, ook niet zonder trek.",
+    "Weeg pasta en rijst ongekookt. Pindakaas en jam: 15 g per boterham.",
+    "Op de fiets vanaf het eerste half uur: per uur 1 bidon sportdrank en 1 banaan of krentenbol.",
+    "Snoep hoort erbij: elke dag 40 g snoep of drop, of 25 g chocolade of chips. Portie in een bakje, zak terug in de kast.",
+    "Na een vreetbui compenseer je niets. De volgende dag eet je gewoon het schema.",
+    "Van vrijdagavond tot en met zaterdag: wit brood, weinig groente, geen alcohol."
+  ],
+  "maten": "Een bidon sportdrank is 500 ml water met 1 portie poeder (30 g koolhydraten). Een snee brood weegt 35 g, een krentenbol 60 g en een banaan 120 g zonder schil.",
+
+  "blokken": {
+    "ontbijt": [
+      ["Volkorenbrood", 2, "sneetjes", "volkoren"],
+      ["100% pindakaas, op beide boterhammen", 30, "g", "pindakaas"],
+      ["Aardbeienjam, op beide boterhammen", 30, "g", "jam"],
+      ["Magere kwark", 200, "g", "kwark"],
+      ["Crunchy muesli naturel, door de kwark", 30, "g", "muesli"],
+      ["Banaan", 1, "", "banaan"]
+    ],
+    "lunch": [
+      ["Volkorenbrood", 4, "sneetjes", "volkoren"],
+      ["Kipfilet (vleeswaren), op 3 boterhammen", 135, "g", "kipbeleg"],
+      ["100% pindakaas, op de vierde boterham", 15, "g", "pindakaas"],
+      ["Aardbeienjam, op de vierde boterham", 15, "g", "jam"],
+      ["Tomaat of komkommer", 100, "g", "rauwkost"],
+      ["Appel", 1, "", "appel"]
+    ],
+    "snack": [
+      ["Volkorenbrood", 1, "sneetjes", "volkoren"],
+      ["Kipfilet (vleeswaren)", 45, "g", "kipbeleg"],
+      ["Halfvolle melk", 250, "ml", "melk"],
+      ["Ongezouten noten", 15, "g", "noten"]
+    ]
+  },
+
+  "dagen": {
+    "ma": {
+      "naam": "Maandag", "titel": "Fietsen en schaatsen", "weegdag": true,
+      "totaal": { "kcal": 3970, "eiwit": 185, "kh": 595 },
+      "momenten": [
+        { "w": "Ontbijt", "b": "ontbijt" },
+        { "w": "Tijdens het fietsen", "i": [
+          ["Sportdrank", 2, "bidons", "sportdrank"],
+          ["Banaan", 1, "", "banaan"],
+          ["Krentenbol", 1, "", "krentenbol"] ] },
+        { "w": "Direct na het fietsen", "i": [
+          ["Halfvolle chocolademelk", 500, "ml", "choco"] ] },
+        { "w": "Lunch", "b": "lunch" },
+        { "w": "Middag", "i": [
+          ["Krentenbol", 1, "", "krentenbol"],
+          ["Banaan", 1, "", "banaan"] ] },
+        { "w": "Avondeten", "sub": "2 tot 3 uur voor het schaatsen", "i": [
+          ["Pasta, ongekookt gewogen", 125, "g", "pasta"],
+          ["Mager rundergehakt", 150, "g", "gehakt"],
+          ["Passata", 200, "g", "passata"],
+          ["Italiaanse roerbakgroente", 200, "g", "groente"] ] },
+        { "w": "Na het schaatsen", "b": "snack", "i": [
+          ["Snoep of drop", 40, "g", "snoep"] ] }
+      ]
+    },
+    "di": {
+      "naam": "Dinsdag", "titel": "Schaatsen",
+      "totaal": { "kcal": 2900, "eiwit": 155, "kh": 385 },
+      "momenten": [
+        { "w": "Ontbijt", "b": "ontbijt" },
+        { "w": "Lunch", "b": "lunch" },
+        { "w": "Middag", "i": [
+          ["Banaan", 1, "", "banaan"] ] },
+        { "w": "Direct na het werk", "sub": "bakje uit de magnetron", "i": [
+          ["Chili con carne van zondag", "de halve pan", "", "bakje_chili"],
+          ["Rijst van zondag", "de helft (75 g ongekookt)", "", "bakje_rijst"] ] },
+        { "w": "Na het schaatsen", "b": "snack", "i": [
+          ["Snoep of drop", 40, "g", "snoep"] ] }
+      ],
+      "notities": [
+        { "na": "Direct na het werk", "t": "Zit er minder dan anderhalf uur tussen het bakje en het schaatsen, eet dan de helft ervoor en de rest na het schaatsen. Warm het bakje 3 minuten op, tot het door en door heet is." }
+      ]
+    },
+    "wo": {
+      "naam": "Woensdag", "titel": "Lange fietsrit", "weegdag": true,
+      "totaal": { "kcal": 3770, "eiwit": 180, "kh": 555 },
+      "momenten": [
+        { "w": "Ontbijt", "b": "ontbijt" },
+        { "w": "Tijdens het fietsen", "i": [
+          ["Sportdrank", 2, "bidons", "sportdrank"],
+          ["Banaan", 2, "", "banaan"],
+          ["Krentenbol", 2, "", "krentenbol"] ] },
+        { "w": "Direct na het fietsen", "sub": "lunch", "b": "lunch" },
+        { "w": "Middag", "b": "snack" },
+        { "w": "Avondeten", "sub": "wraps", "i": [
+          ["Tortillawraps", 3, "", "wraps", "190 g samen"],
+          ["Kipfilet, gebakken", 150, "g", "kip"],
+          ["Kidneybonen, uitgelekt", 120, "g", "bonen", "half blik"],
+          ["Paprika", 160, "g", "paprika", "1 grote"],
+          ["Mais, uitgelekt", 70, "g", "mais", "half klein blik"],
+          ["Olijfolie, om in te bakken", 10, "g", "olie"] ] },
+        { "w": "Avond", "i": [
+          ["Snoep of drop", 40, "g", "snoep"] ] }
+      ],
+      "notities": [
+        { "na": "Avondeten", "kook": true, "t": "Kook dubbel voor donderdag. Bak 300 g kipfilet met 2 grote paprika's, 1 blik kidneybonen, 1 klein blik mais en 20 g olijfolie, en kook 75 g rijst mee. De helft eet je vanavond in de wraps. De andere helft gaat met de rijst in een magnetronbakje, direct de koelkast in." }
+      ]
+    },
+    "do": {
+      "naam": "Donderdag", "titel": "Schaatsen",
+      "totaal": { "kcal": 2860, "eiwit": 160, "kh": 380 },
+      "momenten": [
+        { "w": "Ontbijt", "b": "ontbijt" },
+        { "w": "Lunch", "b": "lunch" },
+        { "w": "Middag", "i": [
+          ["Krentenbol", 1, "", "krentenbol"] ] },
+        { "w": "Direct na het werk", "sub": "bakje uit de magnetron", "i": [
+          ["Kip met bonen, paprika en mais van woensdag", "de halve pan", "", "bakje_kip"],
+          ["Rijst van woensdag", "75 g ongekookt", "", "bakje_rijst"] ] },
+        { "w": "Na het schaatsen", "b": "snack", "i": [
+          ["Snoep of drop", 40, "g", "snoep"] ] }
+      ],
+      "notities": [
+        { "na": "Direct na het werk", "t": "Zit er minder dan anderhalf uur tussen het bakje en het schaatsen, eet dan de helft ervoor en de rest na het schaatsen." }
+      ]
+    },
+    "vr": {
+      "naam": "Vrijdag", "titel": "Dag voor de wedstrijd", "weegdag": true,
+      "totaal": { "kcal": 2910, "eiwit": 165, "kh": 405 },
+      "momenten": [
+        { "w": "Ontbijt", "b": "ontbijt" },
+        { "w": "Lunch", "b": "lunch" },
+        { "w": "Middag", "i": [
+          ["Banaan", 1, "", "banaan"] ] },
+        { "w": "Avondeten", "sub": "pasta met kip", "i": [
+          ["Witte pasta, ongekookt gewogen", 150, "g", "pasta_wit"],
+          ["Kipfilet, in blokjes gebakken", 150, "g", "kip"],
+          ["Passata", 200, "g", "passata"],
+          ["Courgette of wortel, goed gaar", 150, "g", "groente_gaar"],
+          ["Olijfolie, om in te bakken", 5, "g", "olie"] ] },
+        { "w": "Na het lostrappen", "i": [
+          ["Wit brood", 1, "sneetjes", "witbrood"],
+          ["Kipfilet (vleeswaren)", 45, "g", "kipbeleg"],
+          ["Halfvolle melk", 250, "ml", "melk"],
+          ["Ongezouten noten", 15, "g", "noten"],
+          ["Snoep of drop", 40, "g", "snoep"] ] }
+      ],
+      "notities": [
+        { "na": "Avondeten", "t": "Vanaf dit avondeten telt de wedstrijd. Tot de start morgen eet je 695 g koolhydraten, 8,3 g per kg. Stapelen met extra pasta is voor een wedstrijd van een uur niet nodig." }
+      ]
+    },
+    "za": {
+      "naam": "Zaterdag", "titel": "Wedstrijddag", "wedstrijd": true, "start": "20:20",
+      "totaal": { "kcal": 3940, "eiwit": 170, "kh": 660 },
+      "momenten": [
+        { "w": "Rustig fietsen", "t": "08:00", "vast": true, "i": [
+          ["Rustig fietsen", 30, "minuten", null, null, "act"] ] },
+        { "w": "Ontbijt", "t": "08:30", "vast": true, "i": [
+          ["Wit brood", 3, "sneetjes", "witbrood"],
+          ["100% pindakaas, op 2 boterhammen", 30, "g", "pindakaas"],
+          ["Aardbeienjam, op alle 3 boterhammen", 45, "g", "jam"],
+          ["Magere kwark", 200, "g", "kwark"],
+          ["Crunchy muesli naturel, door de kwark", 30, "g", "muesli"],
+          ["Banaan", 1, "", "banaan"] ] },
+        { "w": "Tussendoor", "t": "10:30", "vast": true, "i": [
+          ["Krentenbol", 1, "", "krentenbol"] ] },
+        { "w": "Lunch", "t": "12:30", "i": [
+          ["Wit brood", 4, "sneetjes", "witbrood"],
+          ["Kipfilet (vleeswaren), op 3 boterhammen", 135, "g", "kipbeleg"],
+          ["100% pindakaas, op de vierde boterham", 15, "g", "pindakaas"],
+          ["Aardbeienjam, op de vierde boterham", 15, "g", "jam"],
+          ["Appel", 1, "", "appel"] ] },
+        { "w": "Middag", "t": "15:00", "i": [
+          ["Krentenbol", 1, "", "krentenbol"],
+          ["Banaan", 1, "", "banaan"] ] },
+        { "w": "Drinken", "t": "16:20", "tot": "18:20", "i": [
+          ["Water, in slokken", "500 tot 750 ml", "", null] ] },
+        { "w": "Laatste maaltijd", "t": "17:20", "i": [
+          ["Witte rijst, ongekookt gewogen", 125, "g", "rijst_wit"],
+          ["Kipfilet, gebakken", 75, "g", "kip"],
+          ["Olijfolie, om in te bakken", 5, "g", "olie"] ] },
+        { "w": "Een uur voor de start", "t": "19:20", "i": [
+          ["Banaan", 1, "", "banaan"],
+          ["Ontbijtkoek naturel", 2, "plakken", "ontbijtkoek", "50 g"] ] },
+        { "w": "Warming-up", "t": "19:50", "tot": "20:15", "i": [
+          ["Sportdrank, in kleine slokken", 1, "bidons", "sportdrank"] ] },
+        { "w": "Start", "t": "20:20", "i": [
+          ["Niets eten of drinken", "", "", null, null, "info"] ] },
+        { "w": "Na de finish", "t": "21:20", "tot": "22:20", "i": [
+          ["Halfvolle chocolademelk", 500, "ml", "choco"],
+          ["Wit brood", 2, "sneetjes", "witbrood"],
+          ["Kipfilet, gebakken (de bewaarde helft)", 75, "g", "kip"] ] },
+        { "w": "Avond", "t": "23:00", "i": [
+          ["Krentenbol", 1, "", "krentenbol"],
+          ["Snoep of drop", 40, "g", "snoep"] ] }
+      ],
+      "notities": [
+        { "na": "Laatste maaltijd", "kook": true, "t": "Bak in één keer 150 g kipfilet. De helft eet je bij de rijst, de andere helft bewaar je voor op brood na de finish. Je laatste maaltijd bevat zo 26 g eiwit; de rest eet je na de finish." }
+      ],
+      "maagtest": "Geef je maag na de wedstrijd een cijfer van 0 tot 10. Blijven de klachten na twee wedstrijden, verander dan één ding per keer: eerst de maaltijd van 17:20 naar 16:30, dan de banaan en ontbijtkoek van 19:20 naar 18:45, dan lactosevrije kwark en melk. Komen de klachten ook in rust of op andere dagen terug, ga dan naar je huisarts of een sportarts."
+    },
+    "zo": {
+      "naam": "Zondag", "titel": "Duurrit",
+      "totaal": { "kcal": 4190, "eiwit": 180, "kh": 620 },
+      "momenten": [
+        { "w": "Ontbijt", "i": [
+          ["Volkorenbrood", 3, "sneetjes", "volkoren"],
+          ["100% pindakaas, op alle 3 boterhammen", 45, "g", "pindakaas"],
+          ["Aardbeienjam, op alle 3 boterhammen", 45, "g", "jam"],
+          ["Magere kwark", 200, "g", "kwark"],
+          ["Crunchy muesli naturel, door de kwark", 30, "g", "muesli"],
+          ["Banaan", 1, "", "banaan"] ] },
+        { "w": "Tijdens het fietsen", "i": [
+          ["Sportdrank", 3, "bidons", "sportdrank"],
+          ["Krentenbol", 2, "", "krentenbol"],
+          ["Banaan", 2, "", "banaan"] ] },
+        { "w": "Direct na het fietsen", "i": [
+          ["Halfvolle chocolademelk", 500, "ml", "choco"] ] },
+        { "w": "Lunch", "i": [
+          ["Volkorenbrood", 4, "sneetjes", "volkoren"],
+          ["Eieren, gekookt of als roerei", 3, "", "eieren"],
+          ["Tomaat of komkommer", 100, "g", "rauwkost"] ] },
+        { "w": "Middag", "b": "snack" },
+        { "w": "Avondeten", "sub": "chili con carne met rijst", "i": [
+          ["Mager rundergehakt", 150, "g", "gehakt"],
+          ["Kidneybonen, uitgelekt", 120, "g", "bonen", "half blik"],
+          ["Passata", 200, "g", "passata"],
+          ["Paprika", 160, "g", "paprika", "1 grote"],
+          ["Mais, uitgelekt", 70, "g", "mais", "half klein blik"],
+          ["Rijst, ongekookt gewogen", 75, "g", "rijst"] ] },
+        { "w": "Avond", "i": [
+          ["Snoep of drop", 40, "g", "snoep"] ] }
+      ],
+      "notities": [
+        { "na": "Tijdens het fietsen", "t": "Langer dan 2,5 uur onderweg en loop je aan het eind leeg? Neem dan elk uur een extra krentenbol." },
+        { "na": "Avondeten", "kook": true, "t": "Kook dubbel voor dinsdag. Bak 300 g rundergehakt met 2 grote paprika's, 1 blik kidneybonen, 1 klein blik mais en 400 g passata, en kook 150 g rijst. De helft eet je vanavond. De andere helft gaat met de helft van de rijst in een magnetronbakje, direct de koelkast in." }
+      ]
+    }
+  },
+
+  "periodes": [
+    { "van": "2026-12-20", "tot": "2026-12-31", "dagen": ["zo", "ma", "di", "wo", "do"],
+      "label": "NK-opbouw: niet meer afvallen",
+      "extra": { "w": "Extra in de NK-opbouw", "i": [ ["Krentenbol", 2, "", "krentenbol"] ] } },
+    { "van": "2026-12-20", "tot": "2026-12-31", "dagen": ["vr", "za"],
+      "label": "NK-opbouw: niet meer afvallen. Probeer niets nieuws uit." },
+    { "van": "2027-01-01", "tot": "2027-01-01", "dag": "vr",
+      "label": "Dag voor het NK. Probeer niets nieuws uit." },
+    { "van": "2027-01-02", "tot": "2027-01-02", "dag": "za",
+      "label": "NK. Start je op een andere tijd, zet dan hieronder je starttijd: alle tijden schuiven mee." }
+  ],
+
+  "vervangers": {
+    "volkoren": [["Zacht bolletje", 0.5, "bolletjes"], ["Hard bolletje", 0.5, "bolletjes"]],
+    "witbrood": [["Zacht wit bolletje", 0.5, "bolletjes"], ["Hard wit bolletje", 0.5, "bolletjes"]],
+    "pindakaas": [["100% notenpasta (amandel, cashew)", 1, "g"], ["30+ kaas", 2, "g"], ["Hummus", 2.5, "g"]],
+    "jam": [["Appelstroop", 1, "g"], ["Honing", 0.75, "g"], ["Hagelslag", 0.5, "g"], ["Banaan in plakjes", 2.5, "g"]],
+    "kwark": [["Skyr naturel", 1, "g"], ["Griekse yoghurt 0%", 1, "g"], ["Lactosevrije magere kwark", 1, "g"], ["Hüttenkäse", 0.8, "g"]],
+    "muesli": [["Havermout", 1, "g"], ["Cruesli naturel", 1, "g"], ["Cornflakes", 1, "g"], ["Granola", 0.75, "g"]],
+    "banaan": [["Peer", 1, ""], ["Mandarijnen", 2, ""], ["Rozijnen", 35, "g"], ["Ontbijtkoek naturel", 1.5, "plakken"], ["Energiegel", 1, ""]],
+    "krentenbol": [["Ontbijtkoek naturel", 2, "plakken"], ["Witte bol met 15 g jam", 1, ""], ["Bananen", 1.5, ""], ["Energiereep", 1, ""]],
+    "appel": [["Peer", 1, ""], ["Sinaasappel", 1, ""], ["Mandarijnen", 2, ""], ["Kiwi's", 2, ""], ["Druiven", 150, "g"]],
+    "rauwkost": [["Paprika", 1, "g"], ["Snoeptomaatjes", 1, "g"], ["Wortel", 1, "g"], ["Radijs", 1, "g"]],
+    "kipbeleg": [["Kalkoenfilet (vleeswaren)", 1, "g"], ["Rosbief", 1, "g"], ["Zelfgebakken kipfilet in plakken", 1, "g"], ["Tonijn in water", 1, "g"], ["Gerookte zalm", 1, "g"]],
+    "choco": [["Drinkyoghurt", 1, "ml"], ["Magere chocolademelk", 1, "ml"], ["Halfvolle melk, met 1 krentenbol erbij", 1, "ml"]],
+    "melk": [["Magere melk", 1, "ml"], ["Karnemelk", 1, "ml"], ["Sojadrink", 1, "ml"], ["Magere yoghurt", 1, "g"]],
+    "noten": [["Amandelen", 1, "g"], ["Walnoten", 1, "g"], ["Cashewnoten", 1, "g"], ["Ongezouten pinda's", 1, "g"]],
+    "snoep": [["Drop", 1, "g"], ["Winegums", 1, "g"], ["Chocolade", 0.625, "g"], ["Chips", 0.625, "g"], ["Stroopwafel", 0.025, "stuks"]],
+    "sportdrank": [["Limonadesiroop (geen light), 60 ml in 500 ml water", 1, "bidons"], ["Water met 1 energiegel", 1, "bidons"], ["500 ml water, 30 g suiker, snufje zout", 1, "bidons"]],
+    "pasta": [["Rijst, ongekookt", 1, "g"], ["Volkorenpasta, ongekookt", 1, "g"], ["Couscous, ongekookt", 1, "g"], ["Aardappelen", 4, "g"], ["Gnocchi", 2.25, "g"]],
+    "pasta_wit": [["Witte rijst, ongekookt", 1, "g"], ["Couscous, ongekookt", 1, "g"], ["Aardappelen, geschild", 4, "g"], ["Gnocchi", 2.25, "g"]],
+    "rijst": [["Pasta, ongekookt", 1, "g"], ["Zilvervliesrijst, ongekookt", 1, "g"], ["Couscous, ongekookt", 1, "g"], ["Quinoa, ongekookt", 1, "g"], ["Aardappelen", 4, "g"]],
+    "rijst_wit": [["Witte pasta, ongekookt", 1, "g"], ["Couscous, ongekookt", 1, "g"], ["Aardappelen, geschild", 4, "g"], ["Gnocchi", 2.25, "g"]],
+    "gehakt": [["Kipgehakt", 1, "g"], ["Kalkoengehakt", 1, "g"], ["Vegetarisch gehakt", 1, "g"], ["Kipfilet", 1, "g"], ["Zalmfilet", 0.85, "g"]],
+    "passata": [["Tomatenblokjes uit blik", 1, "g"], ["Pastasaus zonder room", 1, "g"]],
+    "groente": [["Broccoli", 1, "g"], ["Sperziebonen", 1, "g"], ["Courgette", 1, "g"], ["Spinazie", 1, "g"], ["Wokgroente", 1, "g"]],
+    "groente_gaar": [["Wortel, goed gaar", 1, "g"], ["Courgette, goed gaar", 1, "g"], ["Pompoen, goed gaar", 1, "g"], ["Sperziebonen, goed gaar", 1, "g"]],
+    "kip": [["Kalkoenfilet", 1, "g"], ["Mager rundergehakt", 1, "g"], ["Zalmfilet", 0.85, "g"], ["Kabeljauw of andere witvis", 1.3, "g"], ["Garnalen", 1.3, "g"]],
+    "bonen": [["Zwarte bonen, uitgelekt", 1, "g"], ["Kikkererwten, uitgelekt", 1, "g"], ["Linzen, uitgelekt", 1, "g"], ["Witte bonen, uitgelekt", 1, "g"]],
+    "paprika": [["Courgette", 1, "g"], ["Champignons", 1, "g"], ["Ui", 1, "g"], ["Tomaat", 1, "g"]],
+    "mais": [["Doperwten", 1, "g"], ["Sperziebonen", 1, "g"], ["Extra paprika", 1, "g"]],
+    "olie": [["Zonnebloemolie", 1, "g"], ["Vloeibaar bak & braad", 1, "g"]],
+    "wraps": [["Volkorenwraps", 1, ""], ["Pitabroodjes", 1, ""], ["Rijst, ongekookt", 40, "g"]],
+    "eieren": [["Kipfilet (vleeswaren)", 45, "g"], ["Tonijn in water", 40, "g"], ["Hüttenkäse", 65, "g"]],
+    "ontbijtkoek": [["Krentenbol", 0.5, ""], ["Witte bol met 15 g jam", 0.5, ""], ["Energiereep", 0.5, ""]]
+  },
+
+  "voeding_uitleg": "Per eenheid: [kcal, eiwit g, koolhydraten g, vet g]. 'g'/'ml' = per gram of ml; anders per stuk, snee, plak, bidon of portie. De app schaalt de dag zo dat alles afgevinkt precies het dagtotaal uit het schema geeft.",
+  "voeding": {
+    "volkoren": ["snee", 85, 3.8, 13.5, 1.0],
+    "witbrood": ["snee", 88, 3.0, 16.0, 0.8],
+    "pindakaas": ["g", 6.2, 0.26, 0.12, 0.49],
+    "jam": ["g", 2.4, 0, 0.58, 0],
+    "kwark": ["g", 0.57, 0.10, 0.035, 0.002],
+    "muesli": ["g", 4.5, 0.09, 0.62, 0.16],
+    "banaan": ["stuk", 105, 1.3, 24, 0.4],
+    "krentenbol": ["stuk", 180, 5.5, 35, 2.0],
+    "appel": ["stuk", 80, 0.4, 18, 0.3],
+    "rauwkost": ["g", 0.2, 0.01, 0.03, 0.002],
+    "kipbeleg": ["g", 1.05, 0.21, 0.01, 0.02],
+    "choco": ["ml", 0.72, 0.036, 0.11, 0.015],
+    "melk": ["ml", 0.46, 0.034, 0.047, 0.015],
+    "noten": ["g", 6.2, 0.2, 0.1, 0.55],
+    "snoep": ["g", 3.4, 0.03, 0.8, 0.01],
+    "sportdrank": ["bidon", 120, 0, 30, 0],
+    "pasta": ["g", 3.55, 0.12, 0.70, 0.015],
+    "pasta_wit": ["g", 3.55, 0.12, 0.70, 0.015],
+    "rijst": ["g", 3.5, 0.07, 0.78, 0.006],
+    "rijst_wit": ["g", 3.5, 0.07, 0.78, 0.006],
+    "gehakt": ["g", 1.3, 0.20, 0, 0.05],
+    "passata": ["g", 0.3, 0.015, 0.05, 0.002],
+    "groente": ["g", 0.3, 0.02, 0.04, 0.003],
+    "groente_gaar": ["g", 0.3, 0.01, 0.05, 0.002],
+    "kip": ["g", 1.1, 0.23, 0, 0.015],
+    "bonen": ["g", 1.0, 0.07, 0.14, 0.005],
+    "paprika": ["g", 0.3, 0.01, 0.05, 0.003],
+    "mais": ["g", 0.8, 0.03, 0.15, 0.01],
+    "olie": ["g", 9, 0, 0, 1],
+    "wraps": ["stuk", 190, 5.5, 32, 4.5],
+    "eieren": ["stuk", 75, 6.5, 0.3, 5.5],
+    "ontbijtkoek": ["plak", 78, 0.9, 17, 0.4],
+    "bakje_chili": ["portie", 455, 44, 41, 9.4],
+    "bakje_kip": ["portie", 455, 46, 31, 13.8],
+    "bakje_rijst": ["portie", 262, 5, 58.5, 0.5]
+  },
+
+  "bijsturen": {
+    "wegen": "Weeg je op maandag, woensdag en vrijdag direct na het opstaan en kijk alleen naar het weekgemiddelde. Weeg niet op zondag: na de wedstrijddag weeg je 0,5 tot 1 kg meer aan koolhydraten en vocht. Beslis pas na twee volle weken, en daarna elke twee weken opnieuw.",
+    "tabel": [
+      ["Weekgemiddelde daalt 0,2 tot 0,4 kg per week", "Niets veranderen"],
+      ["Daalt minder dan 0,2 kg per week", "Op dinsdag, donderdag en vrijdag: 15 g in plaats van 30 g pindakaas bij het ontbijt en de muesli weg. Dat is 225 kcal minder."],
+      ["Daalt meer dan 0,5 kg per week", "Op dinsdag en donderdag 1 krentenbol en 1 banaan extra. Dat is 290 kcal meer."],
+      ["Trainingen voelen zwaar, je slaapt slecht of de vreetbuien nemen toe", "Zelfde: 1 krentenbol en 1 banaan extra op dinsdag en donderdag."]
+    ],
+    "nk": [
+      "20 tot en met 31 december: stop met afvallen. Eet van zondag tot en met donderdag het schema plus 2 krentenbollen per dag.",
+      "Vrijdag 1 januari: het vrijdagschema.",
+      "Zaterdag 2 januari, het NK: het zaterdagschema. Start je op een andere tijd, schuif dan alle tijden evenveel mee.",
+      "Probeer in deze twee weken niets nieuws uit."
+    ]
+  },
+
+  "boodschappen": [
+    ["Brood en ontbijt", [
+      ["Volkorenbrood", "2 broden (42 sneetjes)"],
+      ["Wit brood", "10 sneetjes"],
+      ["Krentenbollen", "10"],
+      ["Ontbijtkoek naturel", "2 plakken (50 g)"],
+      ["Crunchy muesli naturel", "210 g"] ]],
+    ["Beleg", [
+      ["100% pindakaas", "315 g"],
+      ["Aardbeienjam", "330 g"],
+      ["Kipfilet (vleeswaren)", "1.080 g"] ]],
+    ["Zuivel en eieren", [
+      ["Magere kwark", "1.400 g"],
+      ["Halfvolle melk", "1,5 liter"],
+      ["Halfvolle chocolademelk", "1,5 liter"],
+      ["Eieren", "3"] ]],
+    ["Fruit en groente", [
+      ["Bananen", "17"],
+      ["Appels", "6"],
+      ["Tomaat of komkommer", "600 g"],
+      ["Paprika", "4 grote (640 g)"],
+      ["Italiaanse roerbakgroente", "200 g"],
+      ["Courgette of wortel", "150 g"] ]],
+    ["Vlees", [
+      ["Kipfilet", "600 g"],
+      ["Mager rundergehakt", "450 g"] ]],
+    ["Houdbaar", [
+      ["Mais", "2 kleine blikken (280 g uitgelekt)"],
+      ["Kidneybonen", "2 blikken (480 g uitgelekt)"],
+      ["Passata", "800 g"],
+      ["Pasta", "275 g"],
+      ["Rijst", "350 g"],
+      ["Tortillawraps", "3 (190 g)"],
+      ["Ongezouten noten", "90 g"],
+      ["Olijfolie", "30 g"],
+      ["Sportdrank", "8 porties"],
+      ["Snoep", "280 g, in kleine zakjes"] ]]
+  ]
+}
