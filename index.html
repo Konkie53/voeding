@@ -320,6 +320,7 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   };
   const DAYKEYS = ["zo", "ma", "di", "wo", "do", "vr", "za"];
   const WEEKORDER = ["ma", "di", "wo", "do", "vr", "za", "zo"];
+  const NAMEN = { ma: "Maandag", di: "Dinsdag", wo: "Woensdag", do: "Donderdag", vr: "Vrijdag", za: "Zaterdag", zo: "Zondag" };
   const MAANDEN = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
   const UNITS = { sneetjes: ["snee", "sneetjes"], plakken: ["plak", "plakken"], bidons: ["bidon", "bidons"], stuks: ["stuk", "stuks"], minuten: ["minuut", "minuten"], bolletjes: ["bolletje", "bolletjes"] };
   const TILE_COLORS = ["c-lav", "c-peach", "c-mint", "c-pink", "c-sky", "c-butter"];
@@ -382,15 +383,101 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   const persistLocal = () => { try { localStorage.setItem(LS_KEY, JSON.stringify(store)); } catch (e) {} };
   const log = (date) => store.logs[date] || (store.logs[date] = { date, checked: {}, swaps: {} });
 
+  // Wachtrij: één schrijfactie tegelijk per document. Doel: Claude-db (artifact) of de privé GitHub-datarepo (losse site).
+  const GH_REPO = "Konkie53/voeding-data";
+  let ghToken = null; try { ghToken = localStorage.getItem(LS_KEY + ".gh"); } catch (e) {}
+  store.dirty = store.dirty || {};
+  const ghSha = {}; let lastSync = null, linkMsg = "";
   const pending = new Map(), inflight = new Set(), timers = new Map();
-  function queue(path, data) { pending.set(path, data); clearTimeout(timers.get(path)); timers.set(path, setTimeout(() => flush(path), 350)); }
+  const target = () => (db ? "db" : ghToken ? "gh" : null);
+  function queue(path, data) {
+    store.dirty[path] = true; persistLocal();
+    pending.set(path, data); clearTimeout(timers.get(path));
+    timers.set(path, setTimeout(() => flush(path), db ? 350 : 1500));
+  }
   function flush(path) {
-    if (!db || inflight.has(path) || !pending.has(path)) return;
+    const t = target();
+    if (!t || inflight.has(path) || !pending.has(path)) return;
     const data = pending.get(path); pending.delete(path); inflight.add(path);
-    db.doc(path).set(JSON.parse(JSON.stringify(data)))
-      .then(() => { if (sync !== "ok") { sync = "ok"; renderSync(); } })
-      .catch((e) => { if (e && e.code === "unavailable") { if (!pending.has(path)) pending.set(path, data); setTimeout(() => flush(path), 1500 + Math.random() * 1500); } else { sync = "error"; renderSync(); } })
+    const job = t === "db" ? db.doc(path).set(JSON.parse(JSON.stringify(data))) : ghPut(path + ".json", data);
+    job.then(() => { if (!pending.has(path)) { delete store.dirty[path]; persistLocal(); } lastSync = new Date(); sync = "ok"; renderSync(); })
+      .catch((e) => {
+        const code = e && e.code;
+        if (code === "unavailable" || code === "network") { if (!pending.has(path)) pending.set(path, data); sync = "offline"; renderSync(); setTimeout(() => flush(path), 5000 + Math.random() * 3000); }
+        else { sync = code === "auth" ? "auth" : "error"; renderSync(); }
+      })
       .finally(() => { inflight.delete(path); if (pending.has(path)) flush(path); });
+  }
+  function flushDirty() {
+    Object.keys(store.dirty || {}).forEach((p) => {
+      const [kind, id] = p.split("/"), d = (kind === "log" ? store.logs : store.shop)[id];
+      if (d) queue(p, d); else delete store.dirty[p];
+    });
+  }
+
+  // GitHub-opslag: één JSON-bestand per dag (log/2026-11-25.json) en per week voor boodschappen (shop/<maandag>.json)
+  const b64enc = (s) => btoa(unescape(encodeURIComponent(s)));
+  const b64dec = (s) => decodeURIComponent(escape(atob(s.replace(/\s/g, ""))));
+  async function gh(method, path, body, token) {
+    let r;
+    try {
+      r = await fetch("https://api.github.com/repos/" + GH_REPO + (path ? "/contents/" + path : ""), {
+        method, cache: "no-store",
+        headers: { Authorization: "Bearer " + (token || ghToken), Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
+        body: body ? JSON.stringify(body) : undefined });
+    } catch (e) { throw { code: "network" }; }
+    if (r.status === 401 || r.status === 403) throw { code: "auth", status: r.status };
+    return r;
+  }
+  async function ghGet(path) {
+    const r = await gh("GET", path);
+    if (r.status === 404) { ghSha[path] = null; return null; }
+    if (!r.ok) throw { code: "error", status: r.status };
+    const j = await r.json(); ghSha[path] = j.sha;
+    try { return JSON.parse(b64dec(j.content)); } catch (e) { return null; }
+  }
+  async function ghPut(path, data, retry) {
+    if (ghSha[path] === undefined) await ghGet(path);
+    const body = { message: "Bijgewerkt: " + path, content: b64enc(JSON.stringify(data, null, 1)) };
+    if (ghSha[path]) body.sha = ghSha[path];
+    const r = await gh("PUT", path, body);
+    if ((r.status === 409 || r.status === 422) && !retry) { await ghGet(path); return ghPut(path, data, true); }
+    if (!r.ok) throw { code: "error", status: r.status };
+    const j = await r.json(); ghSha[path] = j.content && j.content.sha;
+  }
+  const pulled = new Set();
+  async function pullWeek(date) {
+    if (target() !== "gh") return;
+    const mo = mondayOf(date); if (pulled.has(mo)) return; pulled.add(mo);
+    const paths = []; for (let i = 0; i < 7; i++) paths.push("log/" + addDays(mo, i)); paths.push("shop/" + mo);
+    let changed = false, failed = null;
+    await Promise.all(paths.map(async (p) => {
+      try {
+        const remote = await ghGet(p + ".json"); if (!remote) return;
+        const [kind, id] = p.split("/"), bag = kind === "log" ? store.logs : store.shop, local = bag[id];
+        if (local && (local.updatedAt || "") >= (remote.updatedAt || "")) return;
+        bag[id] = remote; changed = true;
+      } catch (e) { failed = e.code || "error"; }
+    }));
+    if (failed) { pulled.delete(mo); sync = failed === "auth" ? "auth" : failed === "network" ? "offline" : "error"; }
+    else if (!Object.keys(store.dirty).length) { sync = "ok"; lastSync = new Date(); }
+    if (changed) { dayCache.clear(); persistLocal(); render(); } else renderSync();
+  }
+  async function linkGithub(token) {
+    linkMsg = "Koppelen…"; render();
+    try {
+      const r = await gh("GET", "", null, token);
+      if (r.status === 404) { linkMsg = "Deze sleutel heeft geen toegang tot " + GH_REPO + ". Kies die repo bij Repository access."; return render(); }
+      if (!r.ok) { linkMsg = "GitHub gaf een fout (" + r.status + "). Probeer het later opnieuw."; return render(); }
+    } catch (e) {
+      linkMsg = e.code === "auth" ? "Deze sleutel werkt niet. Controleer of je hem helemaal hebt gekopieerd." : "Geen verbinding met GitHub. Probeer het opnieuw zodra je online bent.";
+      return render();
+    }
+    ghToken = token; try { localStorage.setItem(LS_KEY + ".gh", token); } catch (e) {}
+    linkMsg = "Gekoppeld. Alles wat je afvinkt wordt nu opgeslagen.";
+    Object.keys(store.logs).forEach((id) => { if (store.logs[id].updatedAt) store.dirty["log/" + id] = true; });
+    Object.keys(store.shop).forEach((id) => { if (store.shop[id].updatedAt) store.dirty["shop/" + id] = true; });
+    pulled.clear(); flushDirty(); pullWeek(ui.date); render();
   }
   function saveLog(date) { const L = log(date); L.date = date; L.updatedAt = new Date().toISOString(); persistLocal(); queue("log/" + date, L); }
   function saveShop(wk) { const D = store.shop[wk]; D.updatedAt = new Date().toISOString(); persistLocal(); queue("shop/" + wk, D); }
@@ -408,10 +495,15 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     return changed;
   }
   async function connect() {
-    if (!window.claude || !window.claude.use) return;
-    sync = "connecting"; renderSync();
-    try { db = await window.claude.use("db"); } catch (e) { db = null; }
-    if (!db) { sync = "local"; renderSync(); return; }
+    if (window.claude && window.claude.use) {
+      sync = "connecting"; renderSync();
+      try { db = await window.claude.use("db"); } catch (e) { db = null; }
+    }
+    if (!db) {
+      if (ghToken) { sync = "connecting"; renderSync(); flushDirty(); pullWeek(ui.date); }
+      else { sync = "local"; renderSync(); }
+      return;
+    }
     const timer = setTimeout(() => { if (sync === "connecting") { sync = "error"; renderSync(); } }, 10000);
     const onErr = () => { clearTimeout(timer); sync = "error"; renderSync(); };
     const firstPush = new Set();
@@ -443,15 +535,25 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     const k = keyOf(date);
     return (S.periodes || []).filter((p) => date >= p.van && date <= p.tot && (!p.dagen || p.dagen.includes(k)));
   }
+  // Het weekschema dat op een datum geldt: de nieuwste uit S.weken met vanaf <= datum (en eventueel tot >= datum).
+  // Dagen of blokken die een weekschema niet noemt, komen uit het basisschema.
+  function weekFor(date) {
+    let best = null;
+    (S.weken || []).forEach((w) => { if (date >= w.vanaf && (!w.tot || date <= w.tot) && (!best || w.vanaf >= best.vanaf)) best = w; });
+    return best;
+  }
   const dayCache = new Map();
   function buildDay(date) {
     const L = store.logs[date] || {};
+    const W = weekFor(date);
+    const dagen = Object.assign({}, S.dagen, (W && W.dagen) || {});
+    const blokken = Object.assign({}, S.blokken, (W && W.blokken) || {});
     const per = periodsFor(date);
     const forced = per.find((p) => p.dag);
-    const tpl = L.tpl || (forced && forced.dag) || keyOf(date);
-    const def = S.dagen[tpl];
+    const tpl = (L.tpl && dagen[L.tpl] ? L.tpl : null) || (forced && forced.dag) || keyOf(date);
+    const def = dagen[tpl];
     const offset = def.start && L.start ? toMin(L.start) - toMin(def.start) : 0;
-    const cacheKey = date + "|" + tpl + "|" + offset;
+    const cacheKey = date + "|" + (W ? W.vanaf + W.naam : "basis") + "|" + tpl + "|" + offset;
     if (dayCache.has(cacheKey)) return dayCache.get(cacheKey);
     const seen = {};
     const mk = (prefix, r, scale) => {
@@ -460,7 +562,7 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       return { id, name, q, u, p, x, kind: kind || "food", raw: rawNut(p, q), scale };
     };
     let meals = def.momenten.map((m) => {
-      const raw = [].concat(m.b ? S.blokken[m.b] : [], m.i || []);
+      const raw = [].concat(m.b ? blokken[m.b] || [] : [], m.i || []);
       const shift = (t) => (t && offset && !m.vast ? fromMin(toMin(t) + offset) : t);
       return { w: m.w, sub: m.sub, t: shift(m.t), tot: shift(m.tot), items: raw.map((r) => mk(tpl + "|" + m.w, r, true)) };
     });
@@ -469,8 +571,10 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     // schalen zodat alles afgevinkt precies het dagtotaal uit het schema is
     let P = [0, 0, 0, 0];
     meals.forEach((m) => m.items.forEach((it) => { if (it.scale) P = sum4(P, it.raw); }));
-    const T0 = def.totaal;
-    const f = [P[0] ? T0.kcal / P[0] : 1, P[1] ? T0.eiwit / P[1] : 1, P[2] ? T0.kh / P[2] : 1, P[0] ? T0.kcal / P[0] : 1];
+    // Alleen schalen als het schema een dagtotaal heeft dat dicht bij de som van de producten ligt.
+    const T0 = def.totaal || {};
+    const fac = (t, p) => { if (!t || !p) return 1; const x = t / p; return x > 0.75 && x < 1.33 ? x : 1; };
+    const f = [fac(T0.kcal, P[0]), fac(T0.eiwit, P[1]), fac(T0.kh, P[2]), fac(T0.kcal, P[0])];
     let T = [0, 0, 0, 0];
     meals.forEach((m) => {
       m.nut = [0, 0, 0, 0];
@@ -479,7 +583,7 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     });
     const notes = def.notities || [];
     meals.forEach((m, i) => { m.idx = i; m.notes = notes.filter((n) => n.na === m.w); m.look = mealLook(m.w, m.sub); });
-    const day = { date, tpl, def, meals, banners: per.map((p) => p.label), offset, T };
+    const day = { date, tpl, def, dagen, week: W ? W.naam : null, meals, banners: per.map((p) => p.label).concat(W && W.notitie ? [W.notitie] : []), offset, T };
     dayCache.set(cacheKey, day);
     return day;
   }
@@ -516,7 +620,7 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   }
   function dateLabel(date) {
     const d = parse(date), t = todayStr();
-    const pre = date === t ? "Vandaag" : date === addDays(t, 1) ? "Morgen" : date === addDays(t, -1) ? "Gisteren" : S.dagen[keyOf(date)].naam;
+    const pre = date === t ? "Vandaag" : date === addDays(t, 1) ? "Morgen" : date === addDays(t, -1) ? "Gisteren" : NAMEN[keyOf(date)];
     return pre + ", " + d.getDate() + " " + MAANDEN[d.getMonth()];
   }
 
@@ -548,7 +652,7 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
         '<div class="gauge">' + arcGauge(T[0] ? E[0] / T[0] : 0) +
           '<div class="mid"><div class="big num">' + nl(E[0]) + '</div><div class="left">' + ICON.flame + '<span class="num">' + nl(left) + ' kcal te gaan</span></div></div></div>' +
         '<div class="macros">' + mrow("Eiwit", E[1], T[1], "var(--m-e)") + mrow("Koolhydraten", E[2], T[2], "var(--m-kh)") + mrow("Vet", E[3], T[3], "var(--m-v)") + '</div>' +
-        '<div class="daytitle"><span><b>' + esc(st.day.def.titel) + '</b> · ' + st.mealsDone + ' van ' + st.mealsTotal + ' momenten</span>' +
+        '<div class="daytitle"><span><b>' + esc((st.day.week ? st.day.week + " · " : "") + st.day.def.titel) + '</b> · ' + st.mealsDone + ' van ' + st.mealsTotal + ' momenten</span>' +
           (isToday ? '' : '<button class="todaybtn" data-act="today">Naar vandaag</button>') + '</div>' +
       '</section></div>';
   }
@@ -556,14 +660,9 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   function renderDay() {
     const st = stats(ui.date), day = st.day, L = store.logs[ui.date] || {}, def = day.def;
     let h = "";
-    h += '<div class="chips">' +
-      '<label class="chip" for="tplsel">' + ICON.list + '<select id="tplsel" data-act="tpl" aria-label="Schema voor deze dag">' +
-        WEEKORDER.map((k) => '<option value="' + k + '"' + (k === day.tpl ? " selected" : "") + '>' + S.dagen[k].naam + '-schema</option>').join("") + '</select></label>';
-    if (def.weegdag) h += '<label class="chip" for="weight">' + ICON.scale + '<input id="weight" type="number" inputmode="decimal" step="0.1" min="40" max="150" placeholder="Gewicht" data-act="weight" value="' + (L.gewicht != null ? esc(L.gewicht) : "") + '">kg</label>';
-    if (def.start) h += '<label class="chip" for="startin">' + ICON.flag + 'Start <input id="startin" type="time" data-act="start" value="' + esc(L.start || def.start) + '"></label>';
-    h += '</div>';
+    if (def.start) h += '<div class="chips"><label class="chip" for="startin">' + ICON.flag + 'Starttijd <input id="startin" type="time" data-act="start" value="' + esc(L.start || def.start) + '"></label></div>';
     day.banners.forEach((b) => { h += '<div class="banner">' + ICON.alert + '<span>' + esc(b) + '</span></div>'; });
-    if (L.tpl && L.tpl !== keyOf(ui.date)) h += '<div class="banner">' + ICON.alert + '<span>Je eet vandaag volgens het ' + esc(S.dagen[L.tpl].naam.toLowerCase()) + 'schema.</span></div>';
+    if (day.tpl !== keyOf(ui.date) && L.tpl) h += '<div class="banner">' + ICON.alert + '<span>Je eet vandaag volgens het ' + esc(NAMEN[day.tpl].toLowerCase()) + 'schema. <button class="ghost" data-act="tplpick" data-k="' + keyOf(ui.date) + '">Terug naar normaal</button></span></div>';
 
     h += '<div class="sechead"><h2>Mijn dag</h2><span class="num">' + st.d + ' van ' + st.n + ' afgevinkt</span></div><div class="grid">';
     day.meals.forEach((m) => {
@@ -595,34 +694,31 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
         Array.from({ length: 11 }, (_, i) => '<button data-act="maag" data-v="' + i + '" class="num' + (L.maag === i ? " sel" : "") + '" aria-pressed="' + (L.maag === i) + '">' + i + '</button>').join("") +
         '</div><textarea id="maagnote" data-act="maagnote" placeholder="Wat voelde je en wanneer?">' + esc(L.maagNotitie || "") + '</textarea></section>';
     }
+    h += '<button class="ghost" data-act="tplsheet" style="justify-self:center">Training verschoven? Kies een ander dagschema</button>';
     $view.innerHTML = h;
   }
 
   function renderWeek() {
     const mo = mondayOf(ui.date), today = todayStr();
     let h = '<ul class="days">';
-    const weights = [], prev = [];
+    let n = 0, d0 = 0, kcal = 0, extra = 0, week = null;
     for (let i = 0; i < 7; i++) {
       const d = addDays(mo, i), st = stats(d), dt = parse(d), L = store.logs[d] || {};
       const pct = st.n ? st.d / st.n : 0;
-      if (typeof L.gewicht === "number") weights.push(L.gewicht);
-      const pw = (store.logs[addDays(d, -7)] || {}).gewicht; if (typeof pw === "number") prev.push(pw);
+      n += st.n; d0 += st.d; kcal += st.E[0]; extra += (L.extra || []).length; week = week || st.day.week;
       const k = keyOf(d);
       h += '<li><button class="dayrow ' + DAY_COLORS[k] + (d === today ? " today" : "") + '" data-act="goto" data-date="' + d + '">' +
-        '<span class="d">' + S.dagen[k].naam.slice(0, 2) + '<small>' + dt.getDate() + ' ' + MAANDEN[dt.getMonth()] + '</small></span>' +
-        '<span class="t"><b>' + esc(st.day.def.titel) + '</b><span class="num">' + nl(st.E[0]) + ' van ' + nl(st.T[0]) + ' kcal' + (typeof L.gewicht === "number" ? ' · ' + nlNum(L.gewicht) + ' kg' : '') + '</span></span>' +
+        '<span class="d">' + NAMEN[k].slice(0, 2) + '<small>' + dt.getDate() + ' ' + MAANDEN[dt.getMonth()] + '</small></span>' +
+        '<span class="t"><b>' + esc(st.day.def.titel) + '</b><span class="num">' + nl(st.E[0]) + ' van ' + nl(st.T[0]) + ' kcal</span></span>' +
         '<span class="ring">' + ring(pct, 54, 6, "var(--tile-ink)", "color-mix(in srgb, var(--tile-ink) 18%, transparent)") + '<b class="num">' + Math.round(pct * 100) + '%</b></span>' +
         '</button></li>';
     }
     h += '</ul>';
-    const avg = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
-    const a1 = avg(weights), a0 = avg(prev), f = (v) => v == null ? "–" : nlNum(v.toFixed(1));
-    const diff = a1 != null && a0 != null ? a1 - a0 : null;
-    h += '<section class="panel"><h3>Gewicht</h3><div class="stats">' +
-      '<div class="stat"><b class="num">' + f(a1) + '</b><span>deze week (kg)</span></div>' +
-      '<div class="stat"><b class="num">' + f(a0) + '</b><span>vorige week (kg)</span></div>' +
-      '<div class="stat"><b class="num">' + (diff == null ? "–" : (diff > 0 ? "+" : "") + nlNum(diff.toFixed(1))) + '</b><span>verschil (kg)</span></div>' +
-      '</div><p class="muted">' + esc(S.bijsturen.wegen) + '</p></section>';
+    h += '<section class="panel"><h3>' + esc(week || "Deze week") + '</h3><div class="stats">' +
+      '<div class="stat"><b class="num">' + (n ? Math.round((d0 / n) * 100) : 0) + '%</b><span>afgevinkt</span></div>' +
+      '<div class="stat"><b class="num">' + nl(kcal / 7) + '</b><span>kcal per dag gemiddeld</span></div>' +
+      '<div class="stat"><b class="num">' + extra + '</b><span>keer buiten het schema</span></div>' +
+      '</div></section>';
     $view.innerHTML = h;
   }
 
@@ -642,7 +738,24 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   }
 
   function renderInfo() {
-    let h = '<section class="panel"><p>' + esc(S.intro) + '</p></section>';
+    let h = "";
+    if (!db) {
+      h += '<section class="panel"><h3>Opslaan en synchroniseren</h3>';
+      if (ghToken) {
+        h += '<p>Gekoppeld aan je privé-opslag op GitHub (' + esc(GH_REPO) + '). Alles wat je afvinkt, vervangt of extra eet, wordt daar bewaard.</p>' +
+          (linkMsg ? '<p class="muted">' + esc(linkMsg) + '</p>' : '') +
+          '<button class="ghost" data-act="ghunlink" style="justify-self:start">Ontkoppelen op dit apparaat</button>';
+      } else {
+        h += '<p>Nu staat alles alleen op dit apparaat. Koppel je privé-opslag, dan wordt alles bewaard en kan Claude het teruglezen.</p>' +
+          '<ol class="rules muted"><li>Maak op GitHub een fine-grained token: <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:var(--a-lav);font-weight:600">token aanmaken</a> (Settings → Developer settings → Fine-grained tokens).</li>' +
+          '<li>Repository access: alleen <b>voeding-data</b>. Permissions → Contents: <b>Read and write</b>. Verloopdatum mag een jaar zijn.</li>' +
+          '<li>Kopieer de token en plak hem hieronder. Hij blijft alleen op dit apparaat.</li></ol>' +
+          '<div class="row2"><input class="field" id="ghtoken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…" aria-label="GitHub-token"><button class="btn inline" data-act="ghlink">Koppelen</button></div>' +
+          (linkMsg ? '<p class="muted">' + esc(linkMsg) + '</p>' : '');
+      }
+      h += '</section>';
+    }
+    h += '<section class="panel"><p>' + esc(S.intro) + '</p></section>';
     h += '<section class="panel"><h3>Zo gebruik je dit schema</h3><ol class="rules">' + S.regels.map((r) => '<li>' + esc(r) + '</li>').join("") + '</ol><p class="muted">' + esc(S.maten) + '</p></section>';
     h += '<section class="panel"><h3>Bijsturen</h3><p class="muted">' + esc(S.bijsturen.wegen) + '</p><div class="tbl"><table><tbody>' +
       S.bijsturen.tabel.map(([a, b]) => '<tr><td>' + esc(a) + '</td><td>' + esc(b) + '</td></tr>').join("") + '</tbody></table></div></section>';
@@ -660,7 +773,16 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 
   function renderSync() {
     const f = document.getElementById("sync"); if (!f) return;
-    const txt = { ok: '<span class="dot ok"></span>Opgeslagen in je Claude-account', connecting: '<span class="dot"></span>Verbinden…', local: '<span class="dot"></span>Opgeslagen op dit apparaat', error: '<span class="dot"></span>Account nog niet bereikbaar. Je keuzes staan op dit apparaat en worden later gesynchroniseerd.' };
+    const where = target() === "gh" ? "je GitHub-opslag" : "je Claude-account";
+    const at = lastSync ? " · " + pad(lastSync.getHours()) + ":" + pad(lastSync.getMinutes()) : "";
+    const txt = {
+      ok: '<span class="dot ok"></span>Opgeslagen in ' + where + at,
+      connecting: '<span class="dot"></span>Verbinden…',
+      local: '<span class="dot"></span>Alleen op dit apparaat. Koppel je opslag onder Info.',
+      offline: '<span class="dot"></span>Offline. Je keuzes worden verstuurd zodra je verbinding hebt.',
+      auth: '<span class="dot"></span>Opslag weigert de sleutel. Koppel opnieuw onder Info.',
+      error: '<span class="dot"></span>Opslaan lukte niet. Je keuzes staan veilig op dit apparaat.'
+    };
     f.innerHTML = txt[sync] || "";
   }
 
@@ -756,6 +878,13 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       '<button class="btn" data-act="extrasave">Opslaan bij ' + esc(dateLabel(ui.date).toLowerCase()) + '</button><button class="btn sec" data-act="close">Annuleren</button>');
   }
 
+  function openTpl() {
+    const day = buildDay(ui.date), std = keyOf(ui.date);
+    showSheet('<h2>Ander dagschema</h2><p class="muted">Normaal kiest de app automatisch het schema van de dag. Schuift je training op, kies dan hier welk dagschema je vandaag volgt.</p><div class="opts">' +
+      WEEKORDER.map((k) => '<button class="opt' + (k === day.tpl ? " sel" : "") + '" data-act="tplpick" data-k="' + k + '"><span class="lbl">' + NAMEN[k] + '<small>' + esc(day.dagen[k].titel) + '</small></span><b>' + (k === std ? "normaal" : "") + '</b></button>').join("") +
+      '</div><button class="btn sec" data-act="close">Sluiten</button>');
+  }
+
   // ---------- gebeurtenissen ----------
   function toggleMeal(idx) {
     const m = buildDay(ui.date).meals[idx]; if (!m) return;
@@ -779,6 +908,14 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       saveLog(ui.date); closeSheet(); render(); return;
     }
     if (act === "fab") return openExtra();
+    if (act === "tplsheet") return openTpl();
+    if (act === "tplpick") {
+      const L = log(ui.date), k = el.dataset.k;
+      if (k === keyOf(ui.date)) delete L.tpl; else L.tpl = k;
+      delete L.start; saveLog(ui.date); closeSheet(); render(); return;
+    }
+    if (act === "ghlink") { const v = (document.getElementById("ghtoken").value || "").trim(); if (!v) { linkMsg = "Plak eerst je token."; return render(); } return linkGithub(v); }
+    if (act === "ghunlink") { ghToken = null; try { localStorage.removeItem(LS_KEY + ".gh"); } catch (er) {} linkMsg = ""; sync = "local"; render(); return; }
     if (act === "extrasave") {
       const n = document.getElementById("exname").value.trim(); if (!n) { document.getElementById("exname").focus(); return; }
       const k = parseInt(document.getElementById("exkcal").value, 10), t = document.getElementById("extime").value;
@@ -786,9 +923,9 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       saveLog(ui.date); closeSheet(); if (ui.tab !== "dag") ui.tab = "dag"; render(); return;
     }
     if (act === "extradel") { const L = log(ui.date); L.extra = (L.extra || []).filter((_, i) => i !== Number(el.dataset.i)); saveLog(ui.date); render(); return; }
-    if (act === "prev" || act === "next") { ui.date = addDays(ui.date, act === "prev" ? -1 : 1); render(); return; }
-    if (act === "prevweek" || act === "nextweek") { ui.date = addDays(ui.date, act === "prevweek" ? -7 : 7); render(); return; }
-    if (act === "today") { ui.date = todayStr(); render(); return; }
+    if (act === "prev" || act === "next") { ui.date = addDays(ui.date, act === "prev" ? -1 : 1); render(); pullWeek(ui.date); return; }
+    if (act === "prevweek" || act === "nextweek") { ui.date = addDays(ui.date, act === "prevweek" ? -7 : 7); render(); pullWeek(ui.date); return; }
+    if (act === "today") { ui.date = todayStr(); render(); pullWeek(ui.date); return; }
     if (act === "goto") { ui.date = el.dataset.date; return setTab("dag"); }
     if (act === "tab") return setTab(el.dataset.tab);
     if (act === "open") { ui.meal = Number(el.dataset.m); ui.dtab = "prod"; render(); $detail.scrollTop = 0; return; }
@@ -812,24 +949,46 @@ ol.rules, ul.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   document.addEventListener("change", (e) => {
     const el = e.target, act = el.dataset && el.dataset.act; if (!act) return;
     const L = log(ui.date);
-    if (act === "tpl") { if (el.value === keyOf(ui.date)) delete L.tpl; else L.tpl = el.value; saveLog(ui.date); render(); }
-    if (act === "start") { const def = S.dagen[buildDay(ui.date).tpl]; if (!el.value || el.value === def.start) delete L.start; else L.start = el.value; saveLog(ui.date); render(); }
-    if (act === "weight") { const v = parseFloat(String(el.value).replace(",", ".")); if (isNaN(v)) delete L.gewicht; else L.gewicht = Math.round(v * 10) / 10; saveLog(ui.date); renderSync(); }
+    if (act === "start") { const def = buildDay(ui.date).def; if (!el.value || el.value === def.start) delete L.start; else L.start = el.value; saveLog(ui.date); render(); }
     if (act === "maagnote") { L.maagNotitie = el.value; saveLog(ui.date); }
   });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (!$sheet.hidden) closeSheet(); else if (ui.meal != null) { ui.meal = null; render(); }
   });
+  // Schema laden; bij terugkomen in de app opnieuw ophalen, zodat een nieuw weekschema vanzelf verschijnt.
+  const SCHEMA_KEY = LS_KEY + ".schema";
+  let schemaLoadedAt = 0;
+  function useSchema(json) {
+    (json.weken || []).forEach((w) => { Object.assign(json.voeding = json.voeding || {}, w.voeding || {}); Object.assign(json.vervangers = json.vervangers || {}, w.vervangers || {}); });
+    S = json; dayCache.clear();
+  }
+  function loadSchema(first) {
+    return fetch("schema.json?t=" + Date.now(), { cache: "no-store" })
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then((txt) => {
+        schemaLoadedAt = Date.now();
+        const changed = !S || txt !== (S && S.__raw);
+        if (changed) { const json = JSON.parse(txt); json.__raw = txt; useSchema(json); try { localStorage.setItem(SCHEMA_KEY, txt); } catch (e) {} render(); }
+        if (first) connect();
+      })
+      .catch(() => {
+        if (first) {
+          let cached = null; try { cached = localStorage.getItem(SCHEMA_KEY); } catch (e) {}
+          if (cached) { const json = JSON.parse(cached); json.__raw = cached; useSchema(json); render(); connect(); }
+          else $view.innerHTML = '<div class="panel"><h3>Het schema kon niet laden</h3><p class="muted">Controleer je verbinding en open de app opnieuw.</p></div>';
+        }
+      });
+  }
   let lastToday = todayStr();
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && todayStr() !== lastToday) { if (ui.date === lastToday) ui.date = todayStr(); lastToday = todayStr(); render(); }
+    if (document.visibilityState !== "visible" || !S) return;
+    if (todayStr() !== lastToday) { if (ui.date === lastToday) ui.date = todayStr(); lastToday = todayStr(); render(); }
+    if (Date.now() - schemaLoadedAt > 60000) loadSchema(false);
+    if (target() === "gh") { pulled.delete(mondayOf(ui.date)); flushDirty(); pullWeek(ui.date); }
   });
-
-  fetch("schema.json", { cache: "no-store" })
-    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then((json) => { S = json; render(); connect(); })
-    .catch(() => { $view.innerHTML = '<div class="panel"><h3>Het schema kon niet laden</h3><p class="muted">Controleer je verbinding en open de pagina opnieuw.</p></div>'; });
+  window.addEventListener("online", () => { if (target()) flushDirty(); });
+  loadSchema(true);
 })();
 </script>
 

@@ -237,6 +237,9 @@
     }
   },
 
+  "weken_uitleg": "Nieuwe weekschema's komen hier. De app gebruikt per datum het weekschema met de laatste 'vanaf' die op of voor die datum ligt (en eventueel 'tot' erna). Een weekschema mag 'naam' (bijv. 'Week 8'), 'notitie', 'dagen', 'blokken', 'voeding' en 'vervangers' bevatten, in dezelfde vorm als hierboven. Dagen of blokken die het niet noemt, komen uit het basisschema ('dagen' en 'blokken' bovenaan).",
+  "weken": [],
+
   "periodes": [
     { "van": "2026-12-20", "tot": "2026-12-31", "dagen": ["zo", "ma", "di", "wo", "do"],
       "label": "NK-opbouw: niet meer afvallen",
